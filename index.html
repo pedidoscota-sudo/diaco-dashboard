@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Pedidos · Diaco</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+:root {
+  --bg: #f4f6f9; --surface: #ffffff; --border: #e2e8f0; --border2: #cbd5e1;
+  --accent: #e8401a; --text: #0f172a; --text2: #475569; --muted: #94a3b8;
+  --green: #16a34a; --green-light: #f0fdf4;
+  --amber: #d97706; --amber-light: #fffbeb;
+  --blue: #2563eb;  --blue-light: #eff6ff;
+  --header-bg: #0f3273;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; margin: 0; }
+
+header {
+  background: var(--header-bg); padding: 0 28px; height: 58px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  flex-shrink: 0;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-dot { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; }
+.logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: #fff; }
+.logo-text span { color: #f97316; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.last-update { font-size: 11px; color: #94a3b8; }
+.btn-refresh {
+  background: var(--accent); color: white; border: none;
+  padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: 'Inter', sans-serif; transition: opacity 0.2s;
+}
+.btn-refresh:hover { opacity: 0.88; }
+
+#loadingScreen {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: calc(100vh - 58px); gap: 14px;
+}
+.spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: var(--text2); font-size: 13px; }
+
+#errorScreen {
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; min-height: calc(100vh - 58px); gap: 16px; padding: 32px;
+}
+.error-card { background: var(--surface); border: 1px solid #fecaca; border-radius: 12px; padding: 32px 40px; max-width: 480px; text-align: center; }
+.error-icon { font-size: 40px; margin-bottom: 12px; }
+.error-title { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; color: #dc2626; margin-bottom: 8px; }
+.error-msg { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 16px; }
+.error-code { font-size: 11px; color: var(--muted); font-family: monospace; }
+
+#dashboard { display: none; }
+main { padding: 24px 28px 48px; max-width: 100%; }
+
+/* FILTROS */
+.filters-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 20px;
+  display: flex; align-items: flex-start; gap: 16px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.filter-group { display: flex; flex-direction: column; gap: 5px; }
+.filter-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+
+/* GV MULTI-SELECT */
+.gv-dropdown-wrap { position: relative; }
+.gv-trigger {
+  border: 1px solid var(--border2); border-radius: 7px;
+  padding: 6px 32px 6px 10px; font-size: 13px; font-family: 'Inter', sans-serif;
+  color: var(--text); background: var(--bg); cursor: pointer;
+  min-width: 220px; text-align: left; display: flex; align-items: center;
+  justify-content: space-between; gap: 8px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.gv-trigger::after { content: '▾'; font-size: 10px; color: var(--muted); position: absolute; right: 10px; }
+.gv-dropdown {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  z-index: 100; min-width: 220px; max-height: 260px; overflow-y: auto;
+  padding: 6px 0;
+}
+.gv-dropdown.open { display: block; }
+.gv-option {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px; cursor: pointer; font-size: 13px;
+  transition: background 0.1s;
+}
+.gv-option:hover { background: var(--bg); }
+.gv-option input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+.gv-clear { padding: 6px 14px; font-size: 11px; color: var(--accent); cursor: pointer; border-top: 1px solid var(--border); margin-top: 4px; }
+
+.filter-select {
+  border: 1px solid var(--border2); border-radius: 7px;
+  padding: 6px 10px; font-size: 13px; font-family: 'Inter', sans-serif;
+  color: var(--text); background: var(--surface); cursor: pointer; min-width: 180px;
+}
+.filter-search {
+  border: 1px solid var(--border2); border-radius: 7px;
+  padding: 6px 10px; font-size: 13px; font-family: 'Inter', sans-serif;
+  color: var(--text); background: var(--surface); min-width: 220px;
+}
+.filter-search::placeholder { color: var(--muted); }
+.btn-clear-all { font-size: 12px; color: var(--accent); cursor: pointer; background: none; border: none; font-family: 'Inter', sans-serif; font-weight: 500; align-self: flex-end; padding-bottom: 7px; }
+.filter-divider { width: 1px; height: 40px; background: var(--border); align-self: center; }
+
+/* KPIs */
+.kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 20px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; border-top: 3px solid var(--kpi-color); }
+.kpi-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+.kpi-value { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: var(--kpi-color); line-height: 1; }
+.kpi-sub { font-size: 11px; color: var(--muted); }
+
+/* CHARTS */
+.charts-row { display: grid; gap: 16px; margin-bottom: 16px; }
+.charts-row.col-3-2 { grid-template-columns: 3fr 2fr; }
+.charts-row.col-3 { grid-template-columns: 1fr 1fr 1fr; }
+.charts-row.col-2 { grid-template-columns: 1fr 1fr; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-title { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); }
+.card-badge { font-size: 11px; padding: 3px 8px; border-radius: 99px; background: var(--bg); color: var(--muted); font-weight: 500; border: 1px solid var(--border); }
+
+.status-pills { display: flex; flex-direction: column; gap: 12px; }
+.pill-row { display: flex; align-items: center; gap: 10px; }
+.pill-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pill-name { font-size: 12px; color: var(--text2); flex: 1; }
+.pill-bar-wrap { flex: 2; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.pill-bar { height: 100%; border-radius: 3px; }
+.pill-count { font-size: 12px; font-weight: 600; width: 36px; text-align: right; }
+.pill-pct { font-size: 11px; color: var(--muted); width: 34px; text-align: right; }
+
+/* TABLE */
+.table-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.table-title { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; }
+.table-count { font-size: 11px; color: var(--muted); }
+.table-wrap { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+thead { position: sticky; top: 0; z-index: 10; }
+thead th { background: #f8fafc; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; position: relative; user-select: none; }
+thead th .th-inner { display: flex; align-items: center; gap: 4px; cursor: default; }
+thead th .th-filter-btn { background: none; border: none; cursor: pointer; font-size: 11px; color: var(--muted); padding: 0; line-height: 1; transition: color 0.1s; }
+thead th .th-filter-btn:hover, thead th .th-filter-btn.active { color: var(--accent); }
+.col-filter-drop { display: none; position: fixed; background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 2000; min-width: 220px; max-width: 300px; padding: 8px 0; }
+.col-filter-drop.open { display: block; }
+.col-filter-search { margin: 6px 10px 4px; padding: 5px 8px; border: 1px solid var(--border2); border-radius: 6px; font-size: 12px; width: calc(100% - 20px); font-family: 'Inter', sans-serif; box-sizing: border-box; }
+.col-filter-options { max-height: 200px; overflow-y: auto; padding: 2px 0; }
+.col-filter-option { display: flex; align-items: center; gap: 8px; padding: 5px 12px; cursor: pointer; font-size: 12px; color: var(--text); }
+.col-filter-option:hover { background: var(--bg); }
+.col-filter-option input { accent-color: var(--accent); cursor: pointer; width: 13px; height: 13px; }
+.col-filter-actions { display: flex; gap: 6px; padding: 8px 10px 2px; border-top: 1px solid var(--border); margin-top: 4px; }
+.col-filter-btn-ok { flex: 1; background: var(--accent); color: white; border: none; padding: 6px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; }
+.col-filter-btn-clear { flex: 1; background: none; color: var(--text2); border: 1px solid var(--border2); padding: 6px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: 'Inter', sans-serif; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; cursor: pointer; }
+tbody tr:hover { background: #f0f9ff; }
+tbody tr.selected { background: #dbeafe !important; border-left: 3px solid var(--blue); }
+tbody tr:last-child { border-bottom: none; }
+tbody td { padding: 9px 14px; color: var(--text); vertical-align: middle; }
+.td-obra { min-width: 220px; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.td-cliente { min-width: 220px; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text2); }
+.td-titulo { min-width: 320px; max-width: 450px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text2); font-size: 12px; }
+.td-peso { font-weight: 600; white-space: nowrap; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-subido  { background: var(--green-light); color: var(--green); }
+.badge-verif   { background: var(--amber-light); color: var(--amber); }
+.badge-copia   { background: var(--blue-light);  color: var(--blue);  }
+.badge-anulado { background: #fef2f2; color: #dc2626; }
+
+footer { text-align: center; padding: 20px 28px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); background: var(--surface); margin-top: 24px; }
+
+/* ── LAYOUT CON SIDEBAR ── */
+.app-layout { display: flex; min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 200px; flex-shrink: 0;
+  background: #0f3273;
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+  z-index: 100; overflow-y: auto;
+}
+.sb-head { padding: 16px 14px 14px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.sb-logo { display: flex; align-items: center; gap: 10px; }
+.sb-brand { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; color: #fff; }
+.sb-brand span { color: #f97316; }
+.sb-sub { font-size: 10px; color: rgba(255,255,255,.4); margin-top: 3px; }
+
+.sb-section { padding: 14px 14px 4px; font-size: 9px; font-weight: 600; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: .8px; }
+.sb-nav { padding: 6px 8px; }
+.sb-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; font-size: 12px; color: rgba(255,255,255,.6); cursor: pointer; margin-bottom: 2px; transition: all .15s; }
+.sb-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+.sb-item.active { background: #e8401a; color: #fff; font-weight: 500; }
+.sb-item i { font-size: 16px; flex-shrink: 0; }
+
+.sb-divider { height: 1px; background: rgba(255,255,255,.08); margin: 8px 12px; }
+
+.sb-filters { padding: 6px 10px 14px; }
+.sb-flabel { font-size: 9px; font-weight: 600; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: .7px; margin: 10px 0 5px; }
+.sb-select {
+  width: 100%; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 7px; padding: 6px 8px; font-size: 11px; color: rgba(255,255,255,.8);
+  font-family: 'Inter', sans-serif; cursor: pointer;
+}
+.sb-select option { background: #0f3273; color: #fff; }
+.sb-search-input {
+  width: 100%; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 7px; padding: 6px 8px; font-size: 11px; color: rgba(255,255,255,.8);
+  font-family: 'Inter', sans-serif;
+}
+.sb-search-input::placeholder { color: rgba(255,255,255,.3); }
+.sb-clear { font-size: 11px; color: rgba(255,255,255,.4); cursor: pointer; background: none; border: none; font-family: 'Inter', sans-serif; margin-top: 10px; display: block; width: 100%; text-align: left; padding: 0 2px; }
+.sb-clear:hover { color: #e8401a; }
+
+.sb-foot { padding: 12px; border-top: 1px solid rgba(255,255,255,.08); margin-top: auto; }
+.sb-update { font-size: 10px; color: rgba(255,255,255,.3); }
+.sb-update span { color: rgba(255,255,255,.6); }
+
+/* El contenido principal ocupa el resto */
+.main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-logo">
+      <svg width="34" height="26" viewBox="0 0 34 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="0,13 10,0 10,26" fill="#ffffff"/>
+        <polygon points="12,13 22,2 22,24" fill="#e8401a"/>
+        <polygon points="24,13 34,4 34,22" fill="#f97316"/>
+      </svg>
+      <div>
+        <div class="sb-brand">DIACO <span>·</span></div>
+        <div class="sb-sub">Estado del día</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-nav">
+    <div class="sb-section">Navegación</div>
+    <div class="sb-item active"><i class="ti ti-layout-dashboard" aria-hidden="true"></i> Resumen</div>
+    <div class="sb-item"><i class="ti ti-file-description" aria-hidden="true"></i> Planos</div>
+    <div class="sb-item"><i class="ti ti-building" aria-hidden="true"></i> Obras</div>
+    <div class="sb-item"><i class="ti ti-users" aria-hidden="true"></i> Clientes</div>
+    <div class="sb-item"><i class="ti ti-chart-bar" aria-hidden="true"></i> Gráficas</div>
+  </div>
+
+  <div class="sb-divider"></div>
+
+  <div class="sb-filters">
+    <div class="sb-flabel">Grupo de vendedores</div>
+    <div class="gv-dropdown-wrap">
+      <button class="gv-trigger" id="gvTrigger" onclick="toggleGVDropdown(event)">Todos los grupos</button>
+      <div class="gv-dropdown" id="gvDropdown">
+        <div id="gvOptions"></div>
+        <div class="gv-clear" onclick="clearGV()">✕ Limpiar selección</div>
+      </div>
+    </div>
+
+    <div class="sb-flabel">Estado SAP</div>
+    <select class="sb-select" id="filterEstado" onchange="applyFilters()">
+      <option value="">Todos los estados</option>
+      <option value="Subido a SAP">Subido a SAP</option>
+      <option value="En verificación">En verificación</option>
+      <option value="COPIA">COPIA</option>
+      <option value="Anulado">Anulado</option>
+    </select>
+
+    <div class="sb-flabel">Buscar obra / cliente</div>
+    <input class="sb-search-input" id="filterSearch" type="text" placeholder="🔍  Obra o cliente…" oninput="applyFilters()">
+
+    <div class="sb-flabel">Buscar constructora</div>
+    <input class="sb-search-input" id="filterConstructora" type="text" placeholder="🔍  Constructora…" oninput="applyFilters()">
+
+    <div class="sb-flabel">Año</div>
+    <select class="sb-select" id="filterYear" onchange="applyFilters()">
+      <option value="">Todos</option>
+    </select>
+
+    <div class="sb-flabel">Mes</div>
+    <select class="sb-select" id="filterMonth" onchange="applyFilters()">
+      <option value="">Todos</option>
+      <option value="1">Enero</option>
+      <option value="2">Febrero</option>
+      <option value="3">Marzo</option>
+      <option value="4">Abril</option>
+      <option value="5">Mayo</option>
+      <option value="6">Junio</option>
+      <option value="7">Julio</option>
+      <option value="8">Agosto</option>
+      <option value="9">Septiembre</option>
+      <option value="10">Octubre</option>
+      <option value="11">Noviembre</option>
+      <option value="12">Diciembre</option>
+    </select>
+
+    <button class="sb-clear" onclick="clearAllFilters()">✕ Limpiar todo</button>
+  </div>
+
+  <div class="sb-foot">
+    <div class="sb-update">Actualizado: <span id="lastUpdate">—</span></div>
+  </div>
+</nav>
+
+<div class="main-content">
+
+<header>
+  <div class="logo">
+    <svg width="36" height="28" viewBox="0 0 36 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="0,14 11,0 11,28" fill="#ffffff"/>
+      <polygon points="12,14 23,2 23,26" fill="#e8401a"/>
+      <polygon points="24,14 36,4 36,24" fill="#f97316"/>
+    </svg>
+    <div class="logo-text" style="margin-left:6px">DIACO <span>·</span> Estado del día</div>
+  </div>
+  <div class="header-right">
+    <button class="btn-refresh" onclick="loadData()">🔄 Actualizar</button>
+  </div>
+</header>
+
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <div class="loading-text">Cargando datos…</div>
+</div>
+
+<div id="errorScreen">
+  <div class="error-card">
+    <div class="error-icon">⚠️</div>
+    <div class="error-title">No se encontró el archivo de datos</div>
+    <div class="error-msg">
+      El archivo <strong>datos.json</strong> no está disponible.<br><br>
+      Corre el script Python y sube el <strong>datos.json</strong> generado a la misma carpeta donde está este HTML.
+    </div>
+    <div class="error-code" id="errorCode"></div>
+  </div>
+</div>
+
+<div id="dashboard">
+<main>
+
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi" style="--kpi-color:#e8401a">
+      <div class="kpi-label">Total planos</div>
+      <div class="kpi-value" id="kpiTotal">—</div>
+      <div class="kpi-sub">registros</div>
+    </div>
+    <div class="kpi" style="--kpi-color:#16a34a">
+      <div class="kpi-label">Subidos a SAP</div>
+      <div class="kpi-value" id="kpiSubidos">—</div>
+      <div class="kpi-sub" id="kpiSubidosPct">—</div>
+    </div>
+    <div class="kpi" style="--kpi-color:#d97706">
+      <div class="kpi-label">En verificación</div>
+      <div class="kpi-value" id="kpiVerif">—</div>
+      <div class="kpi-sub">requieren revisión</div>
+    </div>
+    <div class="kpi" style="--kpi-color:#2563eb">
+      <div class="kpi-label">Copias</div>
+      <div class="kpi-value" id="kpiCopia">—</div>
+      <div class="kpi-sub">sin número SAP</div>
+    </div>
+    <div class="kpi" style="--kpi-color:#dc2626">
+      <div class="kpi-label">Anulados</div>
+      <div class="kpi-value" id="kpiAnulado">—</div>
+      <div class="kpi-sub">planos anulados</div>
+    </div>
+    <div class="kpi" style="--kpi-color:#7c3aed">
+      <div class="kpi-label">Peso SAP</div>
+      <div class="kpi-value" id="kpiPeso">—</div>
+      <div class="kpi-sub">toneladas</div>
+    </div>
+  </div>
+
+  <!-- GRÁFICAS FILA 1 -->
+  <div class="charts-row col-3">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Top 10 obras por peso SAP</div>
+        <div class="card-badge">Toneladas</div>
+      </div>
+      <div style="position:relative;height:260px"><canvas id="obrasChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Top 10 constructoras por peso SAP</div>
+        <div class="card-badge">Toneladas</div>
+      </div>
+      <div style="position:relative;height:260px"><canvas id="invChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Estado SAP</div>
+        <div class="card-badge" id="badgeEstado">—</div>
+      </div>
+      <div style="position:relative;height:150px;margin-bottom:16px"><canvas id="estadoChart"></canvas></div>
+      <div class="status-pills" id="statusPills"></div>
+    </div>
+  </div>
+
+  <!-- GRÁFICAS FILA 2 -->
+  <div class="charts-row col-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Peso SAP por grupo de vendedores</div>
+        <div class="card-badge">Toneladas</div>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="gvChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Estado SAP por grupo de vendedores</div>
+        <div class="card-badge">Cantidad de planos</div>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="gvEstadoChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- PEDIDO SELECCIONADO -->
+  <div id="pedidoBanner" style="display:none;background:#dbeafe;border:1px solid #93c5fd;border-radius:10px;padding:12px 20px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <div style="font-size:13px;color:#1e40af;">
+      🔍 <strong>Pedido seleccionado:</strong> <span id="pedidoLabel">—</span> — mostrando todos los planos de este pedido
+    </div>
+    <button onclick="clearPedido()" style="background:none;border:1px solid #93c5fd;border-radius:6px;padding:4px 12px;font-size:12px;color:#1e40af;cursor:pointer;font-family:'Inter',sans-serif;">✕ Ver todos</button>
+  </div>
+
+  <!-- TABLA -->
+  <div class="table-section">
+    <div class="table-header">
+      <div class="table-title">Detalle de planos</div>
+      <div class="table-count" id="tableCount">—</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th><div class="th-inner">Fecha <button class="th-filter-btn" id="fb-fecha" onclick="openColFilter(event,'fecha','Despiece')">▼</button></div></th>
+            <th><div class="th-inner">N° Plano <button class="th-filter-btn" id="fb-plano" onclick="openColFilter(event,'plano','N° plano')">▼</button></div></th>
+            <th><div class="th-inner">Obra <button class="th-filter-btn" id="fb-obra" onclick="openColFilter(event,'obra','SIT_NAME')">▼</button></div></th>
+            <th><div class="th-inner">Constructora <button class="th-filter-btn" id="fb-inv" onclick="openColFilter(event,'inv','INV_NAME')">▼</button></div></th>
+            <th><div class="th-inner">Título del plano <button class="th-filter-btn" id="fb-titulo" onclick="openColFilter(event,'titulo','Título plano')">▼</button></div></th>
+            <th><div class="th-inner">Doc. Ventas <button class="th-filter-btn" id="fb-doc" onclick="openColFilter(event,'doc','Documento de ventas')">▼</button></div></th>
+            <th><div class="th-inner">GV <button class="th-filter-btn" id="fb-gv" onclick="openColFilter(event,'gv','Grupo de vendedores')">▼</button></div></th>
+            <th><div class="th-inner">Peso SAP (kg) <button class="th-filter-btn" id="fb-peso" onclick="openColFilter(event,'peso','Peso SAP (kg)')">▼</button></div></th>
+            <th><div class="th-inner">Estado SAP <button class="th-filter-btn" id="fb-estado" onclick="openColFilter(event,'estado','Estado SAP')">▼</button></div></th>
+            <th><div class="th-inner">Motivo de rechazo <button class="th-filter-btn" id="fb-rechazo" onclick="openColFilter(event,'rechazo','Motivo de rechazo')">▼</button></div></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- COLUMN FILTER DROPDOWN -->
+  <div class="col-filter-drop" id="colFilterDrop">
+    <input class="col-filter-search" id="colFilterSearch" type="text" placeholder="Buscar..." oninput="filterColOptions()">
+    <div class="col-filter-options" id="colFilterOptions"></div>
+    <div class="col-filter-actions">
+      <button class="col-filter-btn-ok" onclick="applyColFilter()">✓ Aplicar</button>
+      <button class="col-filter-btn-clear" onclick="clearColFilter()">✕ Limpiar</button>
+    </div>
+  </div>
+
+</main>
+</div>
+</div>
+
+<footer style="border-top:3px solid #1a4fa0">Dashboard Pedidos <span style="color:#e8401a;font-weight:600">Diaco</span> · Datos actualizados por el equipo de digitación</footer>
+</div>
+
+<script>
+const JSON_URL = "https://raw.githubusercontent.com/pedidoscota-sudo/diaco-dashboard/main/datos.json";
+const ESTADO_COLORS = {'Subido a SAP':'#16a34a','En verificación':'#d97706','COPIA':'#2563eb','Anulado':'#dc2626'};
+const PALETTE = ['#1a4fa0','#e8401a','#1d5bbf','#f97316','#2d73d4','#c0321a','#4a90d9','#fb923c','#0f3273','#f59e0b'];
+
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = 'Inter';
+Chart.defaults.font.size = 11;
+
+let allRows = [];
+let selectedGVs = new Set();
+let selectedPedido = null;
+
+function selectPedido(docVentas, label) {
+  if (selectedPedido === String(docVentas)) {
+    clearPedido();
+    return;
+  }
+  selectedPedido = String(docVentas);
+  document.querySelectorAll('#tableBody tr').forEach(tr => tr.classList.remove('selected'));
+  document.querySelectorAll(`#tableBody tr[data-doc="${docVentas}"]`).forEach(tr => tr.classList.add('selected'));
+  const banner = document.getElementById('pedidoBanner');
+  banner.style.display = 'flex';
+  document.getElementById('pedidoLabel').textContent = label;
+  const rows = getFiltered().filter(r => String(r['Documento de ventas']) === String(docVentas));
+  renderKPIs(rows);
+  renderCharts(rows);
+}
+
+function clearPedido() {
+  selectedPedido = null;
+  document.getElementById('pedidoBanner').style.display = 'none';
+  document.querySelectorAll('#tableBody tr').forEach(tr => tr.classList.remove('selected'));
+  applyFilters();
+}
+let obrasChart, estadoChart, gvChart, gvEstadoChart, invChart;
+
+function fmt(n) { return Math.round(n).toLocaleString('es-CO'); }
+function fmtT(n) { return (n/1000).toLocaleString('es-CO',{minimumFractionDigits:1,maximumFractionDigits:1}); }
+function isAnulado(r) { return /anulado/i.test(r['Título plano']||''); }
+
+// ── Dropdown GV ──
+function toggleGVDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('gvDropdown').classList.toggle('open');
+}
+document.addEventListener('click', () => document.getElementById('gvDropdown')?.classList.remove('open'));
+
+function buildGVOptions() {
+  const gvs = [...new Set(allRows.map(r=>r['Grupo de vendedores']).filter(Boolean))].sort((a,b)=>a-b);
+  document.getElementById('gvOptions').innerHTML = gvs.map(g => `
+    <label class="gv-option">
+      <input type="checkbox" value="${g}" onchange="toggleGV(this)">
+      GV ${Math.round(g)}
+    </label>`).join('');
+
+  // Populate years from Despiece
+  const years = [...new Set(allRows.map(r => {
+    const d = r['Despiece']; if (!d) return null;
+    const date = new Date(d);
+    return isNaN(date) ? null : date.getFullYear();
+  }).filter(Boolean))].sort((a,b) => b-a);
+
+  const yrSel = document.getElementById('filterYear');
+  yrSel.innerHTML = '<option value="">Todos</option>';
+  years.forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === new Date().getFullYear()) opt.selected = true;
+    yrSel.appendChild(opt);
+  });
+}
+
+function toggleGV(cb) {
+  const val = cb.value;
+  if (cb.checked) selectedGVs.add(val);
+  else selectedGVs.delete(val);
+  updateGVTrigger();
+  applyFilters();
+}
+
+function updateGVTrigger() {
+  const btn = document.getElementById('gvTrigger');
+  if (selectedGVs.size === 0) {
+    btn.textContent = 'Todos los grupos';
+  } else if (selectedGVs.size === 1) {
+    btn.textContent = 'GV ' + Math.round([...selectedGVs][0]);
+  } else {
+    btn.textContent = selectedGVs.size + ' grupos seleccionados';
+  }
+}
+
+function clearGV() {
+  selectedGVs.clear();
+  document.querySelectorAll('#gvOptions input').forEach(cb => cb.checked = false);
+  updateGVTrigger();
+  applyFilters();
+}
+
+function clearAllFilters() {
+  clearGV();
+  document.getElementById('filterEstado').value = '';
+  document.getElementById('filterSearch').value = '';
+  document.getElementById('filterConstructora').value = '';
+  document.getElementById('filterYear').value = new Date().getFullYear();
+  document.getElementById('filterMonth').value = '';
+  applyFilters();
+}
+
+// ── Column Filters (Excel-style) ──
+let colFilters = {}; // { fieldKey: Set of selected values }
+let activeColField = null;
+let activeColKey = null;
+
+function openColFilter(e, key, field) {
+  e.stopPropagation();
+  const drop = document.getElementById('colFilterDrop');
+
+  // If same column clicked again, close
+  if (activeColKey === key && drop.classList.contains('open')) {
+    drop.classList.remove('open');
+    activeColKey = null;
+    return;
+  }
+
+  activeColKey = key;
+  activeColField = field;
+
+  // Get unique values from current filtered rows (ignoring this col's filter)
+  const rows = getFilteredExcept(key);
+  let vals = [...new Set(rows.map(r => {
+    let v = r[field];
+    if (v === null || v === undefined) return '(Vacío)';
+    if (field === 'Grupo de vendedores' && v) return 'GV ' + Math.round(v);
+    return String(v).trim() || '(Vacío)';
+  }))].sort();
+
+  const selected = colFilters[key] || new Set();
+  document.getElementById('colFilterSearch').value = '';
+  document.getElementById('colFilterOptions').innerHTML = vals.map(v => `
+    <label class="col-filter-option">
+      <input type="checkbox" value="${v}" ${selected.size === 0 || selected.has(v) ? 'checked' : ''}>
+      ${v}
+    </label>`).join('');
+
+  // Position dropdown
+  const rect = e.target.getBoundingClientRect();
+  drop.style.top = (rect.bottom + 4) + 'px';
+  drop.style.left = Math.min(rect.left, window.innerWidth - 310) + 'px';
+  drop.classList.add('open');
+
+  // Mark button active
+  document.querySelectorAll('.th-filter-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  if (selected.size > 0) e.target.classList.add('active');
+}
+
+function filterColOptions() {
+  const q = document.getElementById('colFilterSearch').value.toLowerCase();
+  document.querySelectorAll('#colFilterOptions .col-filter-option').forEach(opt => {
+    opt.style.display = opt.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function applyColFilter() {
+  const checked = [...document.querySelectorAll('#colFilterOptions input:checked')].map(i => i.value);
+  const all = [...document.querySelectorAll('#colFilterOptions input')].map(i => i.value);
+  if (checked.length === all.length) {
+    delete colFilters[activeColKey];
+  } else {
+    colFilters[activeColKey] = new Set(checked);
+  }
+  document.getElementById('colFilterDrop').classList.remove('open');
+  updateFilterBtnStates();
+  applyFilters();
+}
+
+function clearColFilter() {
+  delete colFilters[activeColKey];
+  document.getElementById('colFilterDrop').classList.remove('open');
+  updateFilterBtnStates();
+  applyFilters();
+}
+
+function updateFilterBtnStates() {
+  const map = { fecha:'Despiece', plano:'N° plano', obra:'SIT_NAME', inv:'INV_NAME', titulo:'Título plano', doc:'Documento de ventas', gv:'Grupo de vendedores', peso:'Peso SAP (kg)', estado:'Estado SAP', rechazo:'Motivo de rechazo' };
+  Object.entries(map).forEach(([key]) => {
+    const btn = document.getElementById('fb-' + key);
+    if (btn) btn.classList.toggle('active', !!colFilters[key] && colFilters[key].size > 0);
+  });
+}
+
+function getFilteredExcept(exceptKey) {
+  // Same as getFiltered but ignores one column filter
+  const estado = document.getElementById('filterEstado').value;
+  const q = document.getElementById('filterSearch').value.toLowerCase().trim();
+  const qConst = document.getElementById('filterConstructora').value.toLowerCase().trim();
+  const year = document.getElementById('filterYear').value;
+  const month = document.getElementById('filterMonth').value;
+  const fieldMap = { fecha:'Despiece', plano:'N° plano', obra:'SIT_NAME', inv:'INV_NAME', titulo:'Título plano', doc:'Documento de ventas', gv:'Grupo de vendedores', peso:'Peso SAP (kg)', estado:'Estado SAP', rechazo:'Motivo de rechazo' };
+
+  return allRows.filter(r => {
+    if (selectedGVs.size > 0 && !selectedGVs.has(String(r['Grupo de vendedores']))) return false;
+    if (estado && r['Estado SAP'] !== estado) return false;
+    if (q) { const obra=(r['SIT_NAME']||'').toLowerCase(); const cli=(r['Nombre del solicitante']||'').toLowerCase(); if(!obra.includes(q)&&!cli.includes(q)) return false; }
+    if (qConst) { const inv=(r['INV_NAME']||'').toLowerCase(); if(!inv.includes(qConst)) return false; }
+    if (year||month) { const d=r['Despiece']?new Date(r['Despiece']):null; if(!d||isNaN(d)) return false; if(year&&d.getFullYear()!==parseInt(year)) return false; if(month&&(d.getMonth()+1)!==parseInt(month)) return false; }
+    // Apply all col filters except the one being opened
+    for (const [key, vals] of Object.entries(colFilters)) {
+      if (key === exceptKey) continue;
+      const field = fieldMap[key];
+      let v = r[field];
+      if (v === null || v === undefined) v = '(Vacío)';
+      else if (field === 'Grupo de vendedores' && v) v = 'GV ' + Math.round(v);
+      else v = String(v).trim() || '(Vacío)';
+      if (!vals.has(v)) return false;
+    }
+    return true;
+  });
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', e => {
+  const drop = document.getElementById('colFilterDrop');
+  if (drop && !drop.contains(e.target) && !e.target.classList.contains('th-filter-btn')) {
+    drop.classList.remove('open');
+    activeColKey = null;
+  }
+});
+async function loadData() {
+  document.getElementById('loadingScreen').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('errorScreen').style.display = 'none';
+
+  try {
+    const res = await fetch(JSON_URL + '?t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    allRows = data.planos || [];
+
+    document.getElementById('lastUpdate').textContent = 'Actualizado: ' + (data.actualizado || '—');
+    buildGVOptions();
+    applyFilters();
+
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+  } catch(err) {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('errorScreen').style.display = 'flex';
+    document.getElementById('errorCode').textContent = err.message;
+  }
+}
+
+function getFiltered() {
+  const estado = document.getElementById('filterEstado').value;
+  const q = document.getElementById('filterSearch').value.toLowerCase().trim();
+  const qConst = document.getElementById('filterConstructora').value.toLowerCase().trim();
+  const year = document.getElementById('filterYear').value;
+  const month = document.getElementById('filterMonth').value;
+  const fieldMap = { fecha:'Despiece', plano:'N° plano', obra:'SIT_NAME', inv:'INV_NAME', titulo:'Título plano', doc:'Documento de ventas', gv:'Grupo de vendedores', peso:'Peso SAP (kg)', estado:'Estado SAP', rechazo:'Motivo de rechazo' };
+
+  return allRows.filter(r => {
+    if (selectedGVs.size > 0 && !selectedGVs.has(String(r['Grupo de vendedores']))) return false;
+    if (estado && r['Estado SAP'] !== estado) return false;
+    if (q) { const obra=(r['SIT_NAME']||'').toLowerCase(); const cli=(r['Nombre del solicitante']||'').toLowerCase(); if(!obra.includes(q)&&!cli.includes(q)) return false; }
+    if (qConst) { const inv=(r['INV_NAME']||'').toLowerCase(); if(!inv.includes(qConst)) return false; }
+    if (year||month) { const d=r['Despiece']?new Date(r['Despiece']):null; if(!d||isNaN(d)) return false; if(year&&d.getFullYear()!==parseInt(year)) return false; if(month&&(d.getMonth()+1)!==parseInt(month)) return false; }
+    for (const [key, vals] of Object.entries(colFilters)) {
+      const field = fieldMap[key];
+      let v = r[field];
+      if (v === null || v === undefined) v = '(Vacío)';
+      else if (field === 'Grupo de vendedores' && v) v = 'GV ' + Math.round(v);
+      else v = String(v).trim() || '(Vacío)';
+      if (!vals.has(v)) return false;
+    }
+    return true;
+  });
+}
+
+function applyFilters() {
+  const rows = getFiltered();
+  renderKPIs(rows);
+  renderCharts(rows);
+  renderTable(rows);
+}
+
+function renderKPIs(rows) {
+  const total = rows.length;
+  const subidos  = rows.filter(r=>r['Estado SAP']==='Subido a SAP').length;
+  const verif    = rows.filter(r=>r['Estado SAP']==='En verificación').length;
+  const copia    = rows.filter(r=>r['Estado SAP']==='COPIA').length;
+  const anulado  = rows.filter(r=>r['Estado SAP']==='Anulado').length;
+  const pesoSAP  = rows.reduce((s,r)=>s+(parseFloat(r['Peso SAP (kg)'])||0),0);
+
+  document.getElementById('kpiTotal').textContent = fmt(total);
+  document.getElementById('kpiSubidos').textContent = fmt(subidos);
+  document.getElementById('kpiSubidosPct').textContent = total?((subidos/total*100).toFixed(1)+'% del total'):'—';
+  document.getElementById('kpiVerif').textContent = fmt(verif);
+  document.getElementById('kpiCopia').textContent = fmt(copia);
+  document.getElementById('kpiAnulado').textContent = fmt(anulado);
+  document.getElementById('kpiPeso').textContent = fmtT(pesoSAP);
+  document.getElementById('badgeEstado').textContent = fmt(total)+' planos';
+}
+
+function renderCharts(rows) {
+  // Top obras por peso SAP
+  const obraW={};
+  rows.forEach(r=>{
+    const o=r['SIT_NAME']; if(!o) return;
+    obraW[o]=(obraW[o]||0)+(parseFloat(r['Peso SAP (kg)'])||0);
+  });
+  const topObras=Object.entries(obraW).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  if(obrasChart) obrasChart.destroy();
+  obrasChart=new Chart(document.getElementById('obrasChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:topObras.map(o=>o[0].length>28?o[0].slice(0,26)+'…':o[0]),
+      datasets:[{data:topObras.map(o=>+(o[1]/1000).toFixed(1)),backgroundColor:PALETTE,borderRadius:5,borderSkipped:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y.toLocaleString('es-CO',{minimumFractionDigits:1})} T`}}},
+      scales:{x:{grid:{display:false},ticks:{maxRotation:38,font:{size:10}}},y:{grid:{color:'#f1f5f9'},ticks:{callback:v=>v.toLocaleString('es-CO')}}}}
+  });
+
+  // Top constructoras por peso SAP (INV_NAME)
+  const invW={};
+  rows.forEach(r=>{
+    const o=r['INV_NAME']; if(!o) return;
+    invW[o]=(invW[o]||0)+(parseFloat(r['Peso SAP (kg)'])||0);
+  });
+  const topInv=Object.entries(invW).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  if(invChart) invChart.destroy();
+  invChart=new Chart(document.getElementById('invChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:topInv.map(o=>o[0].length>28?o[0].slice(0,26)+'…':o[0]),
+      datasets:[{data:topInv.map(o=>+(o[1]/1000).toFixed(1)),backgroundColor:PALETTE,borderRadius:5,borderSkipped:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y.toLocaleString('es-CO',{minimumFractionDigits:1})} T`}}},
+      scales:{x:{grid:{display:false},ticks:{maxRotation:38,font:{size:10}}},y:{grid:{color:'#f1f5f9'},ticks:{callback:v=>v.toLocaleString('es-CO')}}}}
+  });
+
+  // Estado donut
+  const estadoCounts={};
+  rows.forEach(r=>{const e=r['Estado SAP']||'Sin estado'; estadoCounts[e]=(estadoCounts[e]||0)+1;});
+  const eEntries=Object.entries(estadoCounts);
+
+  if(estadoChart) estadoChart.destroy();
+  estadoChart=new Chart(document.getElementById('estadoChart').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:eEntries.map(e=>e[0]),
+          datasets:[{data:eEntries.map(e=>e[1]),backgroundColor:eEntries.map(e=>ESTADO_COLORS[e[0]]||'#94a3b8'),borderColor:'#fff',borderWidth:3,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed}`}}}}
+  });
+
+  const total=rows.length;
+  document.getElementById('statusPills').innerHTML=eEntries.map(([name,count])=>{
+    const pct=total?(count/total*100).toFixed(1):0;
+    const color=ESTADO_COLORS[name]||'#94a3b8';
+    return `<div class="pill-row">
+      <div class="pill-dot" style="background:${color}"></div>
+      <div class="pill-name">${name}</div>
+      <div class="pill-bar-wrap"><div class="pill-bar" style="width:${pct}%;background:${color}"></div></div>
+      <div class="pill-count">${fmt(count)}</div>
+      <div class="pill-pct">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  // GV peso SAP
+  const gvW={};
+  rows.forEach(r=>{const g=r['Grupo de vendedores'];if(!g)return;gvW[g]=(gvW[g]||0)+(parseFloat(r['Peso SAP (kg)'])||0);});
+  const topGV=Object.entries(gvW).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  if(gvChart) gvChart.destroy();
+  gvChart=new Chart(document.getElementById('gvChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:topGV.map(g=>'GV '+Math.round(g[0])),
+          datasets:[{data:topGV.map(g=>+(g[1]/1000).toFixed(1)),backgroundColor:PALETTE,borderRadius:5,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.x.toLocaleString('es-CO',{minimumFractionDigits:1})} T`}}},
+      scales:{x:{grid:{color:'#f1f5f9'}},y:{grid:{display:false}}}}
+  });
+
+  // GV estado stacked
+  const gvList=[...new Set(rows.map(r=>r['Grupo de vendedores']).filter(Boolean))].sort((a,b)=>a-b);
+  const estados=['Subido a SAP','En verificación','COPIA','Anulado'];
+
+  if(gvEstadoChart) gvEstadoChart.destroy();
+  gvEstadoChart=new Chart(document.getElementById('gvEstadoChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:gvList.map(g=>'GV '+Math.round(g)),
+          datasets:estados.map(e=>({label:e,data:gvList.map(g=>rows.filter(r=>r['Grupo de vendedores']==g&&r['Estado SAP']==e).length),backgroundColor:ESTADO_COLORS[e]+'cc',borderRadius:3,borderSkipped:false}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:12,font:{size:10}}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:35,font:{size:10}}},y:{stacked:true,grid:{color:'#f1f5f9'}}}}
+  });
+}
+
+function renderTable(rows) {
+  document.getElementById('tableCount').textContent=fmt(rows.length)+' planos';
+  const display=rows.slice(0,500);
+  document.getElementById('tableBody').innerHTML=display.map(r=>`
+    <tr data-doc="${r['Documento de ventas']||''}" onclick="selectPedido('${r['Documento de ventas']||''}', 'Doc. ${r['Documento de ventas']||'—'} · ${(r['SIT_NAME']||'').substring(0,30)}')" class="${selectedPedido && String(r['Documento de ventas'])===selectedPedido?'selected':''}">
+      <td style="font-size:11px;color:#64748b;white-space:nowrap">${r['Despiece'] ? new Date(r['Despiece']).toLocaleDateString('es-CO') : '—'}</td>
+      <td style="font-family:monospace;font-size:11px;color:#64748b">${r['N° plano']||'—'}</td>
+      <td class="td-obra" title="${r['SIT_NAME']||''}">${r['SIT_NAME']||'—'}</td>
+      <td class="td-cliente" title="${r['INV_NAME']||''}">${r['INV_NAME']||'—'}</td>
+      <td class="td-titulo" title="${r['Título plano']||''}">${r['Título plano']||'—'}</td>
+      <td style="font-family:monospace;font-size:11px;color:#64748b">${r['Documento de ventas']||'—'}</td>
+      <td style="color:#64748b">${r['Grupo de vendedores']?'GV '+Math.round(r['Grupo de vendedores']):'—'}</td>
+      <td class="td-peso">${fmt(parseFloat(r['Peso SAP (kg)'])||0)} kg</td>
+      <td>${badgeHtml(r['Estado SAP'],r)}</td>
+      <td style="font-size:12px;color:#dc2626;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Motivo de rechazo']||''}">${r['Motivo de rechazo']||''}</td>
+    </tr>`).join('');
+  if(rows.length>500)
+    document.getElementById('tableBody').innerHTML+=
+      `<tr><td colspan="10" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">Mostrando 500 de ${fmt(rows.length)} registros. Usa los filtros para reducir.</td></tr>`;
+}
+
+function badgeHtml(estado,r) {
+  if(estado==='Anulado') return '<span class="badge badge-anulado">Anulado</span>';
+  if(estado==='Subido a SAP') return '<span class="badge badge-subido">Subido a SAP</span>';
+  if(estado==='En verificación') return '<span class="badge badge-verif">En verificación</span>';
+  if(estado==='COPIA') return '<span class="badge badge-copia">COPIA</span>';
+  return `<span class="badge" style="background:#f1f5f9;color:#64748b">${estado||'—'}</span>`;
+}
+
+loadData();
+</script>
+</body>
+</html>
