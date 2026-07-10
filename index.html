@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Pedidos · Diaco</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
@@ -261,11 +262,11 @@ footer {
 
   <div class="sb-nav">
     <div class="sb-section">Navegación</div>
-    <div class="sb-item active"><i class="ti ti-layout-dashboard" aria-hidden="true"></i> Resumen</div>
-    <div class="sb-item"><i class="ti ti-file-description" aria-hidden="true"></i> Planos</div>
-    <div class="sb-item"><i class="ti ti-building" aria-hidden="true"></i> Obras</div>
-    <div class="sb-item"><i class="ti ti-users" aria-hidden="true"></i> Clientes</div>
-    <div class="sb-item"><i class="ti ti-chart-bar" aria-hidden="true"></i> Gráficas</div>
+    <div class="sb-item active" onclick="setVista('resumen', this)"><i class="ti ti-layout-dashboard" aria-hidden="true"></i> Resumen</div>
+    <div class="sb-item" onclick="setVista('planos', this)"><i class="ti ti-file-description" aria-hidden="true"></i> Planos</div>
+    <div class="sb-item" onclick="setVista('obras', this)"><i class="ti ti-building" aria-hidden="true"></i> Obras</div>
+    <div class="sb-item" onclick="setVista('clientes', this)"><i class="ti ti-users" aria-hidden="true"></i> Clientes</div>
+    <div class="sb-item" onclick="setVista('graficas', this)"><i class="ti ti-chart-bar" aria-hidden="true"></i> Gráficas</div>
   </div>
 
   <div class="sb-divider"></div>
@@ -361,9 +362,8 @@ footer {
 <div id="dashboard">
 <main>
 
-
   <!-- KPIs -->
-  <div class="kpi-grid">
+  <div id="seccion-kpis" class="kpi-grid">
     <div class="kpi" style="--kpi-color:#e8401a">
       <div class="kpi-label">Total planos</div>
       <div class="kpi-value" id="kpiTotal">—</div>
@@ -396,63 +396,69 @@ footer {
     </div>
   </div>
 
-  <!-- GRÁFICAS FILA 1 -->
-  <div class="charts-row col-3">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Top 10 obras por peso SAP</div>
-        <div class="card-badge">Toneladas</div>
+  <!-- GRÁFICAS -->
+  <div id="seccion-graficas">
+    <div class="charts-row col-3">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Top 10 obras por peso SAP</div>
+          <div class="card-badge">Toneladas</div>
+        </div>
+        <div style="position:relative;height:260px"><canvas id="obrasChart"></canvas></div>
       </div>
-      <div style="position:relative;height:260px"><canvas id="obrasChart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Top 10 constructoras por peso SAP</div>
-        <div class="card-badge">Toneladas</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Top 10 constructoras por peso SAP</div>
+          <div class="card-badge">Toneladas</div>
+        </div>
+        <div style="position:relative;height:260px"><canvas id="invChart"></canvas></div>
       </div>
-      <div style="position:relative;height:260px"><canvas id="invChart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Estado SAP</div>
-        <div class="card-badge" id="badgeEstado">—</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Estado SAP</div>
+          <div class="card-badge" id="badgeEstado">—</div>
+        </div>
+        <div style="position:relative;height:150px;margin-bottom:16px"><canvas id="estadoChart"></canvas></div>
+        <div class="status-pills" id="statusPills"></div>
       </div>
-      <div style="position:relative;height:150px;margin-bottom:16px"><canvas id="estadoChart"></canvas></div>
-      <div class="status-pills" id="statusPills"></div>
     </div>
-  </div>
 
-  <!-- GRÁFICAS FILA 2 -->
-  <div class="charts-row col-2">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Peso SAP por grupo de vendedores</div>
-        <div class="card-badge">Toneladas</div>
+    <div class="charts-row col-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Peso SAP por grupo de vendedores</div>
+          <div class="card-badge">Toneladas</div>
+        </div>
+        <div style="position:relative;height:220px"><canvas id="gvChart"></canvas></div>
       </div>
-      <div style="position:relative;height:220px"><canvas id="gvChart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Estado SAP por grupo de vendedores</div>
-        <div class="card-badge">Cantidad de planos</div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Estado SAP por grupo de vendedores</div>
+          <div class="card-badge">Cantidad de planos</div>
+        </div>
+        <div style="position:relative;height:220px"><canvas id="gvEstadoChart"></canvas></div>
       </div>
-      <div style="position:relative;height:220px"><canvas id="gvEstadoChart"></canvas></div>
     </div>
-  </div>
+  </div><!-- /seccion-graficas -->
 
   <!-- PEDIDO SELECCIONADO -->
-  <div id="pedidoBanner" style="display:none;background:#dbeafe;border:1px solid #93c5fd;border-radius:10px;padding:12px 20px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+  <div id="pedidoBanner" style="display:none;background:#dbeafe;border:1px solid #93c5fd;border-radius:10px;padding:12px 20px;margin-bottom:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
     <div style="font-size:13px;color:#1e40af;">
       🔍 <strong>Pedido seleccionado:</strong> <span id="pedidoLabel">—</span> — mostrando todos los planos de este pedido
     </div>
     <button onclick="clearPedido()" style="background:none;border:1px solid #93c5fd;border-radius:6px;padding:4px 12px;font-size:12px;color:#1e40af;cursor:pointer;font-family:'Inter',sans-serif;">✕ Ver todos</button>
   </div>
 
-  <!-- TABLA -->
-  <div class="table-section">
+  <!-- TABLA PLANOS -->
+  <div id="seccion-tabla" class="table-section">
     <div class="table-header">
       <div class="table-title">Detalle de planos</div>
-      <div class="table-count" id="tableCount">—</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="table-count" id="tableCount">—</div>
+        <button onclick="exportarExcel()" style="background:#16a34a;color:white;border:none;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;">
+          <i class="ti ti-file-spreadsheet"></i> Exportar Excel
+        </button>
+      </div>
     </div>
     <div class="table-wrap">
       <table>
@@ -471,6 +477,57 @@ footer {
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- VISTA OBRAS -->
+  <div id="seccion-obras" style="display:none" class="table-section">
+    <div class="table-header">
+      <div class="table-title">Resumen por obra</div>
+      <div class="table-count" id="obrasCount">—</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Obra</th>
+            <th>Constructora</th>
+            <th>GV</th>
+            <th style="text-align:right">Planos</th>
+            <th style="text-align:right">Peso SAP (kg)</th>
+            <th style="text-align:right">Subidos</th>
+            <th style="text-align:right">En verificación</th>
+            <th style="text-align:right">Copias</th>
+            <th style="text-align:right">Anulados</th>
+          </tr>
+        </thead>
+        <tbody id="obrasBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- VISTA CLIENTES -->
+  <div id="seccion-clientes" style="display:none" class="table-section">
+    <div class="table-header">
+      <div class="table-title">Resumen por constructora</div>
+      <div class="table-count" id="clientesCount">—</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Constructora</th>
+            <th style="text-align:right">Obras</th>
+            <th style="text-align:right">Planos</th>
+            <th style="text-align:right">Peso SAP (kg)</th>
+            <th style="text-align:right">Subidos</th>
+            <th style="text-align:right">En verificación</th>
+            <th style="text-align:right">Copias</th>
+            <th style="text-align:right">Anulados</th>
+          </tr>
+        </thead>
+        <tbody id="clientesBody"></tbody>
       </table>
     </div>
   </div>
@@ -504,12 +561,136 @@ Chart.defaults.font.size = 11;
 let allRows = [];
 let selectedGVs = new Set();
 let selectedPedido = null;
+let vistaActual = 'resumen';
+
+// ── Vistas ──
+function setVista(vista, el) {
+  vistaActual = vista;
+
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  const secKpis     = document.getElementById('seccion-kpis');
+  const secGraficas = document.getElementById('seccion-graficas');
+  const secTabla    = document.getElementById('seccion-tabla');
+  const secObras    = document.getElementById('seccion-obras');
+  const secClientes = document.getElementById('seccion-clientes');
+  const banner      = document.getElementById('pedidoBanner');
+
+  secKpis.style.display     = 'none';
+  secGraficas.style.display = 'none';
+  secTabla.style.display    = 'none';
+  secObras.style.display    = 'none';
+  secClientes.style.display = 'none';
+  if (banner) banner.style.display = 'none';
+
+  if (vista === 'resumen') {
+    secKpis.style.display     = 'grid';
+    secGraficas.style.display = 'block';
+    secTabla.style.display    = 'block';
+  } else if (vista === 'planos') {
+    secTabla.style.display = 'block';
+  } else if (vista === 'graficas') {
+    secKpis.style.display     = 'grid';
+    secGraficas.style.display = 'block';
+  } else if (vista === 'obras') {
+    secObras.style.display = 'block';
+    renderObras();
+  } else if (vista === 'clientes') {
+    secClientes.style.display = 'block';
+    renderClientes();
+  }
+}
+
+function renderObras() {
+  const rows = getFiltered();
+  const map = {};
+  rows.forEach(r => {
+    const k = r['SIT_NAME'] || '—';
+    if (!map[k]) map[k] = { obra: k, inv: r['INV_NAME']||'—', gv: r['Grupo de vendedores']||'', planos:0, peso:0, subidos:0, verif:0, copia:0, anulado:0 };
+    map[k].planos++;
+    map[k].peso += parseFloat(r['Peso SAP (kg)'])||0;
+    if (r['Estado SAP']==='Subido a SAP')    map[k].subidos++;
+    if (r['Estado SAP']==='En verificación') map[k].verif++;
+    if (r['Estado SAP']==='COPIA')           map[k].copia++;
+    if (r['Estado SAP']==='Anulado')         map[k].anulado++;
+  });
+  const sorted = Object.values(map).sort((a,b) => b.peso - a.peso);
+  document.getElementById('obrasCount').textContent = fmt(sorted.length) + ' obras';
+  document.getElementById('obrasBody').innerHTML = sorted.map(o => `
+    <tr>
+      <td class="td-obra" title="${o.obra}">${o.obra}</td>
+      <td class="td-cliente">${o.inv}</td>
+      <td style="color:#64748b">${o.gv ? 'GV '+Math.round(o.gv) : '—'}</td>
+      <td style="text-align:right;font-weight:600">${fmt(o.planos)}</td>
+      <td style="text-align:right;font-weight:600">${fmt(Math.round(o.peso))} kg</td>
+      <td style="text-align:right;color:#16a34a;font-weight:600">${fmt(o.subidos)}</td>
+      <td style="text-align:right;color:#d97706;font-weight:600">${fmt(o.verif)}</td>
+      <td style="text-align:right;color:#2563eb;font-weight:600">${fmt(o.copia)}</td>
+      <td style="text-align:right;color:#dc2626;font-weight:600">${fmt(o.anulado)}</td>
+    </tr>`).join('');
+}
+
+function renderClientes() {
+  const rows = getFiltered();
+  const map = {};
+  rows.forEach(r => {
+    const k = r['INV_NAME'] || '—';
+    if (!map[k]) map[k] = { inv: k, obras: new Set(), planos:0, peso:0, subidos:0, verif:0, copia:0, anulado:0 };
+    map[k].obras.add(r['SIT_NAME']||'');
+    map[k].planos++;
+    map[k].peso += parseFloat(r['Peso SAP (kg)'])||0;
+    if (r['Estado SAP']==='Subido a SAP')    map[k].subidos++;
+    if (r['Estado SAP']==='En verificación') map[k].verif++;
+    if (r['Estado SAP']==='COPIA')           map[k].copia++;
+    if (r['Estado SAP']==='Anulado')         map[k].anulado++;
+  });
+  const sorted = Object.values(map).sort((a,b) => b.peso - a.peso);
+  document.getElementById('clientesCount').textContent = fmt(sorted.length) + ' constructoras';
+  document.getElementById('clientesBody').innerHTML = sorted.map(c => `
+    <tr>
+      <td class="td-obra" title="${c.inv}">${c.inv}</td>
+      <td style="text-align:right;color:#64748b">${fmt(c.obras.size)}</td>
+      <td style="text-align:right;font-weight:600">${fmt(c.planos)}</td>
+      <td style="text-align:right;font-weight:600">${fmt(Math.round(c.peso))} kg</td>
+      <td style="text-align:right;color:#16a34a;font-weight:600">${fmt(c.subidos)}</td>
+      <td style="text-align:right;color:#d97706;font-weight:600">${fmt(c.verif)}</td>
+      <td style="text-align:right;color:#2563eb;font-weight:600">${fmt(c.copia)}</td>
+      <td style="text-align:right;color:#dc2626;font-weight:600">${fmt(c.anulado)}</td>
+    </tr>`).join('');
+}
+
+// ── Exportar Excel ──
+function exportarExcel() {
+  const rows = getFiltered();
+  if (!rows.length) { alert('No hay datos para exportar.'); return; }
+
+  const data = rows.map(r => ({
+    'Fecha':              r['Despiece'] ? new Date(r['Despiece']).toLocaleDateString('es-CO') : '',
+    'N° Plano':          r['N° plano'] || '',
+    'Obra':              r['SIT_NAME'] || '',
+    'Constructora':      r['INV_NAME'] || '',
+    'Título del plano':  r['Título plano'] || '',
+    'Doc. Ventas':       r['Documento de ventas'] || '',
+    'GV':                r['Grupo de vendedores'] ? 'GV ' + Math.round(r['Grupo de vendedores']) : '',
+    'Peso SAP (kg)':     parseFloat(r['Peso SAP (kg)']) || 0,
+    'Estado SAP':        r['Estado SAP'] || '',
+    'Motivo de rechazo': r['Motivo de rechazo'] || ''
+  }));
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [
+    {wch:12},{wch:14},{wch:36},{wch:36},{wch:45},
+    {wch:14},{wch:8},{wch:14},{wch:18},{wch:32}
+  ];
+  XLSX.utils.book_append_sheet(wb, ws, 'Detalle Planos');
+  const fecha = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Detalle_Planos_${fecha}.xlsx`);
+}
 
 function selectPedido(docVentas, label) {
-  if (selectedPedido === String(docVentas)) {
-    clearPedido();
-    return;
-  }
+  if (selectedPedido === String(docVentas)) { clearPedido(); return; }
   selectedPedido = String(docVentas);
   document.querySelectorAll('#tableBody tr').forEach(tr => tr.classList.remove('selected'));
   document.querySelectorAll(`#tableBody tr[data-doc="${docVentas}"]`).forEach(tr => tr.classList.add('selected'));
@@ -527,11 +708,11 @@ function clearPedido() {
   document.querySelectorAll('#tableBody tr').forEach(tr => tr.classList.remove('selected'));
   applyFilters();
 }
+
 let obrasChart, estadoChart, gvChart, gvEstadoChart, invChart;
 
 function fmt(n) { return Math.round(n).toLocaleString('es-CO'); }
 function fmtT(n) { return (n/1000).toLocaleString('es-CO',{minimumFractionDigits:1,maximumFractionDigits:1}); }
-function isAnulado(r) { return /anulado/i.test(r['Título plano']||''); }
 
 // ── Dropdown GV ──
 function toggleGVDropdown(e) {
@@ -548,7 +729,6 @@ function buildGVOptions() {
       GV ${Math.round(g)}
     </label>`).join('');
 
-  // Populate years from Despiece
   const years = [...new Set(allRows.map(r => {
     const d = r['Despiece']; if (!d) return null;
     const date = new Date(d);
@@ -575,13 +755,9 @@ function toggleGV(cb) {
 
 function updateGVTrigger() {
   const btn = document.getElementById('gvTrigger');
-  if (selectedGVs.size === 0) {
-    btn.textContent = 'Todos los grupos';
-  } else if (selectedGVs.size === 1) {
-    btn.textContent = 'GV ' + Math.round([...selectedGVs][0]);
-  } else {
-    btn.textContent = selectedGVs.size + ' grupos seleccionados';
-  }
+  if (selectedGVs.size === 0) btn.textContent = 'Todos los grupos';
+  else if (selectedGVs.size === 1) btn.textContent = 'GV ' + Math.round([...selectedGVs][0]);
+  else btn.textContent = selectedGVs.size + ' grupos seleccionados';
 }
 
 function clearGV() {
@@ -601,26 +777,18 @@ function clearAllFilters() {
   applyFilters();
 }
 
-// ── Column Filters (Excel-style) ──
-let colFilters = {}; // { fieldKey: Set of selected values }
+// ── Column Filters ──
+let colFilters = {};
 let activeColField = null;
 let activeColKey = null;
 
 function openColFilter(e, key, field) {
   e.stopPropagation();
   const drop = document.getElementById('colFilterDrop');
-
-  // If same column clicked again, close
   if (activeColKey === key && drop.classList.contains('open')) {
-    drop.classList.remove('open');
-    activeColKey = null;
-    return;
+    drop.classList.remove('open'); activeColKey = null; return;
   }
-
-  activeColKey = key;
-  activeColField = field;
-
-  // Get unique values from current filtered rows (ignoring this col's filter)
+  activeColKey = key; activeColField = field;
   const rows = getFilteredExcept(key);
   let vals = [...new Set(rows.map(r => {
     let v = r[field];
@@ -628,7 +796,6 @@ function openColFilter(e, key, field) {
     if (field === 'Grupo de vendedores' && v) return 'GV ' + Math.round(v);
     return String(v).trim() || '(Vacío)';
   }))].sort();
-
   const selected = colFilters[key] || new Set();
   document.getElementById('colFilterSearch').value = '';
   document.getElementById('colFilterOptions').innerHTML = vals.map(v => `
@@ -636,14 +803,10 @@ function openColFilter(e, key, field) {
       <input type="checkbox" value="${v}" ${selected.size === 0 || selected.has(v) ? 'checked' : ''}>
       ${v}
     </label>`).join('');
-
-  // Position dropdown
   const rect = e.target.getBoundingClientRect();
   drop.style.top = (rect.bottom + 4) + 'px';
   drop.style.left = Math.min(rect.left, window.innerWidth - 310) + 'px';
   drop.classList.add('open');
-
-  // Mark button active
   document.querySelectorAll('.th-filter-btn').forEach(b => b.classList.remove('active'));
   e.target.classList.add('active');
   if (selected.size > 0) e.target.classList.add('active');
@@ -659,11 +822,8 @@ function filterColOptions() {
 function applyColFilter() {
   const checked = [...document.querySelectorAll('#colFilterOptions input:checked')].map(i => i.value);
   const all = [...document.querySelectorAll('#colFilterOptions input')].map(i => i.value);
-  if (checked.length === all.length) {
-    delete colFilters[activeColKey];
-  } else {
-    colFilters[activeColKey] = new Set(checked);
-  }
+  if (checked.length === all.length) delete colFilters[activeColKey];
+  else colFilters[activeColKey] = new Set(checked);
   document.getElementById('colFilterDrop').classList.remove('open');
   updateFilterBtnStates();
   applyFilters();
@@ -685,21 +845,18 @@ function updateFilterBtnStates() {
 }
 
 function getFilteredExcept(exceptKey) {
-  // Same as getFiltered but ignores one column filter
   const estado = document.getElementById('filterEstado').value;
   const q = document.getElementById('filterSearch').value.toLowerCase().trim();
   const qConst = document.getElementById('filterConstructora').value.toLowerCase().trim();
   const year = document.getElementById('filterYear').value;
   const month = document.getElementById('filterMonth').value;
   const fieldMap = { fecha:'Despiece', plano:'N° plano', obra:'SIT_NAME', inv:'INV_NAME', titulo:'Título plano', doc:'Documento de ventas', gv:'Grupo de vendedores', peso:'Peso SAP (kg)', estado:'Estado SAP', rechazo:'Motivo de rechazo' };
-
   return allRows.filter(r => {
     if (selectedGVs.size > 0 && !selectedGVs.has(String(r['Grupo de vendedores']))) return false;
     if (estado && r['Estado SAP'] !== estado) return false;
     if (q) { const obra=(r['SIT_NAME']||'').toLowerCase(); const cli=(r['Nombre del solicitante']||'').toLowerCase(); if(!obra.includes(q)&&!cli.includes(q)) return false; }
     if (qConst) { const inv=(r['INV_NAME']||'').toLowerCase(); if(!inv.includes(qConst)) return false; }
     if (year||month) { const d=r['Despiece']?new Date(r['Despiece']):null; if(!d||isNaN(d)) return false; if(year&&d.getFullYear()!==parseInt(year)) return false; if(month&&(d.getMonth()+1)!==parseInt(month)) return false; }
-    // Apply all col filters except the one being opened
     for (const [key, vals] of Object.entries(colFilters)) {
       if (key === exceptKey) continue;
       const field = fieldMap[key];
@@ -713,29 +870,25 @@ function getFilteredExcept(exceptKey) {
   });
 }
 
-// Close dropdown on outside click
 document.addEventListener('click', e => {
   const drop = document.getElementById('colFilterDrop');
   if (drop && !drop.contains(e.target) && !e.target.classList.contains('th-filter-btn')) {
-    drop.classList.remove('open');
-    activeColKey = null;
+    drop.classList.remove('open'); activeColKey = null;
   }
 });
+
 async function loadData() {
   document.getElementById('loadingScreen').style.display = 'flex';
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('errorScreen').style.display = 'none';
-
   try {
     const res = await fetch(JSON_URL + '?t=' + Date.now());
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     allRows = data.planos || [];
-
-    document.getElementById('lastUpdate').textContent = 'Actualizado: ' + (data.actualizado || '—');
+    document.getElementById('lastUpdate').textContent = data.actualizado || '—';
     buildGVOptions();
     applyFilters();
-
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
   } catch(err) {
@@ -752,7 +905,6 @@ function getFiltered() {
   const year = document.getElementById('filterYear').value;
   const month = document.getElementById('filterMonth').value;
   const fieldMap = { fecha:'Despiece', plano:'N° plano', obra:'SIT_NAME', inv:'INV_NAME', titulo:'Título plano', doc:'Documento de ventas', gv:'Grupo de vendedores', peso:'Peso SAP (kg)', estado:'Estado SAP', rechazo:'Motivo de rechazo' };
-
   return allRows.filter(r => {
     if (selectedGVs.size > 0 && !selectedGVs.has(String(r['Grupo de vendedores']))) return false;
     if (estado && r['Estado SAP'] !== estado) return false;
@@ -776,16 +928,17 @@ function applyFilters() {
   renderKPIs(rows);
   renderCharts(rows);
   renderTable(rows);
+  if (vistaActual === 'obras') renderObras();
+  if (vistaActual === 'clientes') renderClientes();
 }
 
 function renderKPIs(rows) {
-  const total = rows.length;
+  const total    = rows.length;
   const subidos  = rows.filter(r=>r['Estado SAP']==='Subido a SAP').length;
   const verif    = rows.filter(r=>r['Estado SAP']==='En verificación').length;
   const copia    = rows.filter(r=>r['Estado SAP']==='COPIA').length;
   const anulado  = rows.filter(r=>r['Estado SAP']==='Anulado').length;
   const pesoSAP  = rows.reduce((s,r)=>s+(parseFloat(r['Peso SAP (kg)'])||0),0);
-
   document.getElementById('kpiTotal').textContent = fmt(total);
   document.getElementById('kpiSubidos').textContent = fmt(subidos);
   document.getElementById('kpiSubidosPct').textContent = total?((subidos/total*100).toFixed(1)+'% del total'):'—';
@@ -797,58 +950,34 @@ function renderKPIs(rows) {
 }
 
 function renderCharts(rows) {
-  // Top obras por peso SAP
   const obraW={};
-  rows.forEach(r=>{
-    const o=r['SIT_NAME']; if(!o) return;
-    obraW[o]=(obraW[o]||0)+(parseFloat(r['Peso SAP (kg)'])||0);
-  });
+  rows.forEach(r=>{ const o=r['SIT_NAME']; if(!o) return; obraW[o]=(obraW[o]||0)+(parseFloat(r['Peso SAP (kg)'])||0); });
   const topObras=Object.entries(obraW).sort((a,b)=>b[1]-a[1]).slice(0,10);
-
   if(obrasChart) obrasChart.destroy();
   obrasChart=new Chart(document.getElementById('obrasChart').getContext('2d'),{
     type:'bar',
-    data:{
-      labels:topObras.map(o=>o[0].length>28?o[0].slice(0,26)+'…':o[0]),
-      datasets:[{data:topObras.map(o=>+(o[1]/1000).toFixed(1)),backgroundColor:PALETTE,borderRadius:5,borderSkipped:false}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y.toLocaleString('es-CO',{minimumFractionDigits:1})} T`}}},
-      scales:{x:{grid:{display:false},ticks:{maxRotation:38,font:{size:10}}},y:{grid:{color:'#f1f5f9'},ticks:{callback:v=>v.toLocaleString('es-CO')}}}}
+    data:{ labels:topObras.map(o=>o[0].length>28?o[0].slice(0,26)+'…':o[0]), datasets:[{data:topObras.map(o=>+(o[1]/1000).toFixed(1)),backgroundColor:PALETTE,borderRadius:5,borderSkipped:false}] },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y.toLocaleString('es-CO',{minimumFractionDigits:1})} T`}}},scales:{x:{grid:{display:false},ticks:{maxRotation:38,font:{size:10}}},y:{grid:{color:'#f1f5f9'},ticks:{callback:v=>v.toLocaleString('es-CO')}}}}
   });
 
-  // Top constructoras por peso SAP (INV_NAME)
   const invW={};
-  rows.forEach(r=>{
-    const o=r['INV_NAME']; if(!o) return;
-    invW[o]=(invW[o]||0)+(parseFloat(r['Peso SAP (kg)'])||0);
-  });
+  rows.forEach(r=>{ const o=r['INV_NAME']; if(!o) return; invW[o]=(invW[o]||0)+(parseFloat(r['Peso SAP (kg)'])||0); });
   const topInv=Object.entries(invW).sort((a,b)=>b[1]-a[1]).slice(0,10);
-
   if(invChart) invChart.destroy();
   invChart=new Chart(document.getElementById('invChart').getContext('2d'),{
     type:'bar',
-    data:{
-      labels:topInv.map(o=>o[0].length>28?o[0].slice(0,26)+'…':o[0]),
-      datasets:[{data:topInv.map(o=>+(o[1]/1000).toFixed(1)),backgroundColor:PALETTE,borderRadius:5,borderSkipped:false}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y.toLocaleString('es-CO',{minimumFractionDigits:1})} T`}}},
-      scales:{x:{grid:{display:false},ticks:{maxRotation:38,font:{size:10}}},y:{grid:{color:'#f1f5f9'},ticks:{callback:v=>v.toLocaleString('es-CO')}}}}
+    data:{ labels:topInv.map(o=>o[0].length>28?o[0].slice(0,26)+'…':o[0]), datasets:[{data:topInv.map(o=>+(o[1]/1000).toFixed(1)),backgroundColor:PALETTE,borderRadius:5,borderSkipped:false}] },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y.toLocaleString('es-CO',{minimumFractionDigits:1})} T`}}},scales:{x:{grid:{display:false},ticks:{maxRotation:38,font:{size:10}}},y:{grid:{color:'#f1f5f9'},ticks:{callback:v=>v.toLocaleString('es-CO')}}}}
   });
 
-  // Estado donut
   const estadoCounts={};
-  rows.forEach(r=>{const e=r['Estado SAP']||'Sin estado'; estadoCounts[e]=(estadoCounts[e]||0)+1;});
+  rows.forEach(r=>{ const e=r['Estado SAP']||'Sin estado'; estadoCounts[e]=(estadoCounts[e]||0)+1; });
   const eEntries=Object.entries(estadoCounts);
-
   if(estadoChart) estadoChart.destroy();
   estadoChart=new Chart(document.getElementById('estadoChart').getContext('2d'),{
     type:'doughnut',
-    data:{labels:eEntries.map(e=>e[0]),
-          datasets:[{data:eEntries.map(e=>e[1]),backgroundColor:eEntries.map(e=>ESTADO_COLORS[e[0]]||'#94a3b8'),borderColor:'#fff',borderWidth:3,hoverOffset:6}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed}`}}}}
+    data:{labels:eEntries.map(e=>e[0]),datasets:[{data:eEntries.map(e=>e[1]),backgroundColor:eEntries.map(e=>ESTADO_COLORS[e[0]]||'#94a3b8'),borderColor:'#fff',borderWidth:3,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed}`}}}}
   });
 
   const total=rows.length;
@@ -864,40 +993,29 @@ function renderCharts(rows) {
     </div>`;
   }).join('');
 
-  // GV peso SAP
   const gvW={};
-  rows.forEach(r=>{const g=r['Grupo de vendedores'];if(!g)return;gvW[g]=(gvW[g]||0)+(parseFloat(r['Peso SAP (kg)'])||0);});
+  rows.forEach(r=>{ const g=r['Grupo de vendedores']; if(!g) return; gvW[g]=(gvW[g]||0)+(parseFloat(r['Peso SAP (kg)'])||0); });
   const topGV=Object.entries(gvW).sort((a,b)=>b[1]-a[1]).slice(0,8);
-
   if(gvChart) gvChart.destroy();
   gvChart=new Chart(document.getElementById('gvChart').getContext('2d'),{
     type:'bar',
-    data:{labels:topGV.map(g=>'GV '+Math.round(g[0])),
-          datasets:[{data:topGV.map(g=>+(g[1]/1000).toFixed(1)),backgroundColor:PALETTE,borderRadius:5,borderSkipped:false}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.x.toLocaleString('es-CO',{minimumFractionDigits:1})} T`}}},
-      scales:{x:{grid:{color:'#f1f5f9'}},y:{grid:{display:false}}}}
+    data:{labels:topGV.map(g=>'GV '+Math.round(g[0])),datasets:[{data:topGV.map(g=>+(g[1]/1000).toFixed(1)),backgroundColor:PALETTE,borderRadius:5,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.x.toLocaleString('es-CO',{minimumFractionDigits:1})} T`}}},scales:{x:{grid:{color:'#f1f5f9'}},y:{grid:{display:false}}}}
   });
 
-  // GV estado stacked
   const gvList=[...new Set(rows.map(r=>r['Grupo de vendedores']).filter(Boolean))].sort((a,b)=>a-b);
   const estados=['Subido a SAP','En verificación','COPIA','Anulado'];
-
   if(gvEstadoChart) gvEstadoChart.destroy();
   gvEstadoChart=new Chart(document.getElementById('gvEstadoChart').getContext('2d'),{
     type:'bar',
-    data:{labels:gvList.map(g=>'GV '+Math.round(g)),
-          datasets:estados.map(e=>({label:e,data:gvList.map(g=>rows.filter(r=>r['Grupo de vendedores']==g&&r['Estado SAP']==e).length),backgroundColor:ESTADO_COLORS[e]+'cc',borderRadius:3,borderSkipped:false}))},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:12,font:{size:10}}}},
-      scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:35,font:{size:10}}},y:{stacked:true,grid:{color:'#f1f5f9'}}}}
+    data:{labels:gvList.map(g=>'GV '+Math.round(g)),datasets:estados.map(e=>({label:e,data:gvList.map(g=>rows.filter(r=>r['Grupo de vendedores']==g&&r['Estado SAP']==e).length),backgroundColor:ESTADO_COLORS[e]+'cc',borderRadius:3,borderSkipped:false}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:12,font:{size:10}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:35,font:{size:10}}},y:{stacked:true,grid:{color:'#f1f5f9'}}}}
   });
 }
 
 function renderTable(rows) {
-  document.getElementById('tableCount').textContent=fmt(rows.length)+' planos';
-  const display=rows.slice(0,500);
-  document.getElementById('tableBody').innerHTML=display.map(r=>`
+  document.getElementById('tableCount').textContent = fmt(rows.length) + ' planos';
+  document.getElementById('tableBody').innerHTML = rows.map(r => `
     <tr data-doc="${r['Documento de ventas']||''}" onclick="selectPedido('${r['Documento de ventas']||''}', 'Doc. ${r['Documento de ventas']||'—'} · ${(r['SIT_NAME']||'').substring(0,30)}')" class="${selectedPedido && String(r['Documento de ventas'])===selectedPedido?'selected':''}">
       <td style="font-size:11px;color:#64748b;white-space:nowrap">${r['Despiece'] ? new Date(r['Despiece']).toLocaleDateString('es-CO') : '—'}</td>
       <td style="font-family:monospace;font-size:11px;color:#64748b">${r['N° plano']||'—'}</td>
@@ -907,19 +1025,16 @@ function renderTable(rows) {
       <td style="font-family:monospace;font-size:11px;color:#64748b">${r['Documento de ventas']||'—'}</td>
       <td style="color:#64748b">${r['Grupo de vendedores']?'GV '+Math.round(r['Grupo de vendedores']):'—'}</td>
       <td class="td-peso">${fmt(parseFloat(r['Peso SAP (kg)'])||0)} kg</td>
-      <td>${badgeHtml(r['Estado SAP'],r)}</td>
+      <td>${badgeHtml(r['Estado SAP'])}</td>
       <td style="font-size:12px;color:#dc2626;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Motivo de rechazo']||''}">${r['Motivo de rechazo']||''}</td>
     </tr>`).join('');
-  if(rows.length>500)
-    document.getElementById('tableBody').innerHTML+=
-      `<tr><td colspan="10" style="text-align:center;padding:12px;color:#94a3b8;font-size:12px">Mostrando 500 de ${fmt(rows.length)} registros. Usa los filtros para reducir.</td></tr>`;
 }
 
-function badgeHtml(estado,r) {
-  if(estado==='Anulado') return '<span class="badge badge-anulado">Anulado</span>';
-  if(estado==='Subido a SAP') return '<span class="badge badge-subido">Subido a SAP</span>';
+function badgeHtml(estado) {
+  if(estado==='Anulado')         return '<span class="badge badge-anulado">Anulado</span>';
+  if(estado==='Subido a SAP')    return '<span class="badge badge-subido">Subido a SAP</span>';
   if(estado==='En verificación') return '<span class="badge badge-verif">En verificación</span>';
-  if(estado==='COPIA') return '<span class="badge badge-copia">COPIA</span>';
+  if(estado==='COPIA')           return '<span class="badge badge-copia">COPIA</span>';
   return `<span class="badge" style="background:#f1f5f9;color:#64748b">${estado||'—'}</span>`;
 }
 
