@@ -465,6 +465,7 @@ footer {
         <thead>
           <tr>
             <th><div class="th-inner">Fecha <button class="th-filter-btn" id="fb-fecha" onclick="openColFilter(event,'fecha','Despiece')">▼</button></div></th>
+            <th><div class="th-inner">Subió <button class="th-filter-btn" id="fb-subio" onclick="openColFilter(event,'subio','Entrega prevista')">▼</button></div></th>
             <th><div class="th-inner">N° Plano <button class="th-filter-btn" id="fb-plano" onclick="openColFilter(event,'plano','N° plano')">▼</button></div></th>
             <th><div class="th-inner">Obra <button class="th-filter-btn" id="fb-obra" onclick="openColFilter(event,'obra','SIT_NAME')">▼</button></div></th>
             <th><div class="th-inner">Constructora <button class="th-filter-btn" id="fb-inv" onclick="openColFilter(event,'inv','INV_NAME')">▼</button></div></th>
@@ -837,7 +838,7 @@ function clearColFilter() {
 }
 
 function updateFilterBtnStates() {
-  const map = { fecha:'Despiece', plano:'N° plano', obra:'SIT_NAME', inv:'INV_NAME', titulo:'Título plano', doc:'Documento de ventas', gv:'Grupo de vendedores', peso:'Peso SAP (kg)', estado:'Estado SAP', rechazo:'Motivo de rechazo' };
+  const map = { fecha:'Despiece', subio:'Entrega prevista', plano:'N° plano', obra:'SIT_NAME', inv:'INV_NAME', titulo:'Título plano', doc:'Documento de ventas', gv:'Grupo de vendedores', peso:'Peso SAP (kg)', estado:'Estado SAP', rechazo:'Motivo de rechazo' };
   Object.entries(map).forEach(([key]) => {
     const btn = document.getElementById('fb-' + key);
     if (btn) btn.classList.toggle('active', !!colFilters[key] && colFilters[key].size > 0);
@@ -904,7 +905,7 @@ function getFiltered() {
   const qConst = document.getElementById('filterConstructora').value.toLowerCase().trim();
   const year = document.getElementById('filterYear').value;
   const month = document.getElementById('filterMonth').value;
-  const fieldMap = { fecha:'Despiece', plano:'N° plano', obra:'SIT_NAME', inv:'INV_NAME', titulo:'Título plano', doc:'Documento de ventas', gv:'Grupo de vendedores', peso:'Peso SAP (kg)', estado:'Estado SAP', rechazo:'Motivo de rechazo' };
+  const fieldMap = { fecha:'Despiece', subio:'Entrega prevista', plano:'N° plano', obra:'SIT_NAME', inv:'INV_NAME', titulo:'Título plano', doc:'Documento de ventas', gv:'Grupo de vendedores', peso:'Peso SAP (kg)', estado:'Estado SAP', rechazo:'Motivo de rechazo' };
   return allRows.filter(r => {
     if (selectedGVs.size > 0 && !selectedGVs.has(String(r['Grupo de vendedores']))) return false;
     if (estado && r['Estado SAP'] !== estado) return false;
@@ -1018,6 +1019,7 @@ function renderTable(rows) {
   document.getElementById('tableBody').innerHTML = rows.map(r => `
     <tr data-doc="${r['Documento de ventas']||''}" onclick="selectPedido('${r['Documento de ventas']||''}', 'Doc. ${r['Documento de ventas']||'—'} · ${(r['SIT_NAME']||'').substring(0,30)}')" class="${selectedPedido && String(r['Documento de ventas'])===selectedPedido?'selected':''}">
       <td style="font-size:11px;color:#64748b;white-space:nowrap">${r['Despiece'] ? new Date(r['Despiece']).toLocaleDateString('es-CO') : '—'}</td>
+      <td style="font-size:11px;color:#64748b;white-space:nowrap">${r['Entrega prevista'] ? new Date(r['Entrega prevista']).toLocaleDateString('es-CO') : '—'}</td>
       <td style="font-family:monospace;font-size:11px;color:#64748b">${r['N° plano']||'—'}</td>
       <td class="td-obra" title="${r['SIT_NAME']||''}">${r['SIT_NAME']||'—'}</td>
       <td class="td-cliente" title="${r['INV_NAME']||''}">${r['INV_NAME']||'—'}</td>
