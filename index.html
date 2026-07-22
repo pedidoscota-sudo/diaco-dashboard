@@ -116,7 +116,7 @@ main { padding: 24px 28px 48px; max-width: 100%; }
 .filter-divider { width: 1px; height: 40px; background: var(--border); align-self: center; }
 
 /* KPIs */
-.kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 20px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px; margin-bottom: 20px; }
 .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; border-top: 3px solid var(--kpi-color); }
 .kpi-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
 .kpi-value { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: var(--kpi-color); line-height: 1; }
@@ -388,6 +388,11 @@ footer {
       <div class="kpi-label">Anulados</div>
       <div class="kpi-value" id="kpiAnulado">—</div>
       <div class="kpi-sub">planos anulados</div>
+    </div>
+    <div class="kpi" style="--kpi-color:#6b7280">
+      <div class="kpi-label">Sin respuesta</div>
+      <div class="kpi-value" id="kpiSinRespuesta">—</div>
+      <div class="kpi-sub">sin respuesta cliente</div>
     </div>
     <div class="kpi" style="--kpi-color:#7c3aed">
       <div class="kpi-label">Peso SAP</div>
@@ -939,7 +944,8 @@ function renderKPIs(rows) {
   const subidos  = rows.filter(r=>r['Estado SAP']==='Subido a SAP').length;
   const verif    = rows.filter(r=>r['Estado SAP']==='En verificación').length;
   const copia    = rows.filter(r=>r['Estado SAP']==='COPIA').length;
-  const anulado  = rows.filter(r=>r['Estado SAP']==='Anulado').length;
+  const anulado      = rows.filter(r=>r['Estado SAP']==='Anulado').length;
+  const sinRespuesta = rows.filter(r=>r['Estado SAP']==='Sin respuesta').length;
   const pesoSAP  = rows.reduce((s,r)=>s+(parseFloat(r['Peso SAP (kg)'])||0),0);
   document.getElementById('kpiTotal').textContent = fmt(total);
   document.getElementById('kpiSubidos').textContent = fmt(subidos);
@@ -947,6 +953,7 @@ function renderKPIs(rows) {
   document.getElementById('kpiVerif').textContent = fmt(verif);
   document.getElementById('kpiCopia').textContent = fmt(copia);
   document.getElementById('kpiAnulado').textContent = fmt(anulado);
+  document.getElementById('kpiSinRespuesta').textContent = fmt(sinRespuesta);
   document.getElementById('kpiPeso').textContent = fmtT(pesoSAP);
   document.getElementById('badgeEstado').textContent = fmt(total)+' planos';
 }
